@@ -20,14 +20,16 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
+        working-directory: salary-calculator-electron-project/salary-calculator-electron
         run: npm install
 
       - name: Build Windows installer
+        working-directory: salary-calculator-electron-project/salary-calculator-electron
         run: npm run dist
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: Salary-Calculator-Windows-Installer
-          path: dist/*.exe
+          path: salary-calculator-electron-project/salary-calculator-electron/dist/*.exe
           if-no-files-found: error
