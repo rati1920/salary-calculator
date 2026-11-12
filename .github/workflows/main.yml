@@ -1,0 +1,32 @@
+
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: salary-calculator-electron-project/salary-calculator-electron
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: salary-calculator-electron-project/salary-calculator-electron
+        run: npm run dist
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Salary-Calculator-Windows-Installer
+          path: salary-calculator-electron-project/salary-calculator-electron/dist/*.exe
+          if-no-files-found: error
