@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salary Calculator</title>
+<style>
+:root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#182230;background:#f4f6fa}
+*{box-sizing:border-box}body{margin:0;padding:28px}.app{max-width:850px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+h1{font-size:25px;margin:0}h2{font-size:17px;margin:0 0 14px}
+.panel{background:white;border:1px solid #e2e7ef;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 3px 14px #18223008}
+.tabs{display:flex;gap:8px;margin:14px 0}.tabs button{flex:1}
+button{border:0;border-radius:10px;padding:11px 14px;background:#e9eef7;color:#243247;font-weight:650;cursor:pointer}
+button.active,.primary{background:#2357d6;color:white}button.danger{background:#fff0f0;color:#b42318}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-size:13px;color:#5b6678;margin-bottom:6px}
+input{width:100%;padding:11px;border:1px solid #d8deea;border-radius:9px;font-size:15px;background:#fff;color:#182230}
+input:focus{outline:2px solid #c6d7ff;border-color:#668fe8}
+.field{min-width:0}.muted{color:#697586;font-size:13px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:9px 0}
+.big{font-size:27px;font-weight:750}.net{background:#edf8f1;padding:15px;border-radius:12px;margin-top:12px}
+.warn{color:#b42318;font-size:13px;margin-top:9px}.small{font-size:12px;color:#6b7280}
+.history-item{border-top:1px solid #edf0f5;padding:14px 0}.history-item:first-child{border-top:0}
+.hidden{display:none}.pill{font-size:12px;background:#edf2ff;color:#3159b7;padding:5px 9px;border-radius:99px}
+@media(max-width:620px){body{padding:14px}.grid{grid-template-columns:1fr}header{align-items:flex-start;gap:10px;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>Salary Calculator</h1><span class="pill">Desktop edition</span></header>
+<div class="tabs">
+<button id="calcTab" class="active">Calculator</button>
+<button id="historyTab">Monthly history</button>
+</div>
+<section id="calculator">
+<div class="panel">
+<h2>Payment month</h2>
+<div class="grid">
+<div class="field"><label>Month</label><input id="month" type="month"></div>
+<div class="field"><label>Monthly working-hour limit</label><input id="limit" type="number" min="0" value="160"></div>
+</div>
+</div>
+<div class="panel">
+<h2>Working hours</h2>
+<div class="grid">
+<div class="field"><label>Total worked hours</label><input id="total" type="number" min="0" value="160"></div>
+<div class="field"><label>Day hours — 9 ₾/hour</label><input id="day" type="number" min="0" value="120"></div>
+<div class="field"><label>Night hours — 13.50 ₾/hour</label><input id="night" type="number" min="0" value="40"></div>
+<div class="field"><label>Vacation days</label><input id="vacation" type="number" min="0" value="0"></div>
+</div>
+<div id="hoursWarning" class="warn hidden">Day hours + night hours must equal total worked hours.</div>
+<div id="vacationFields" class="hidden" style="margin-top:16px">
+<h2>Previous 3 months' salary</h2>
+<div class="grid">
+<div class="field"><label>Month 1 salary (₾)</label><input id="m1" type="number" min="0" value="0"></div>
+<div class="field"><label>Month 2 salary (₾)</label><input id="m2" type="number" min="0" value="0"></div>
+<div class="field"><label>Month 3 salary (₾)</label><input id="m3" type="number" min="0" value="0"></div>
+</div>
+<div class="row"><span class="muted">Vacation hours counted</span><strong id="vacHours">0 h</strong></div>
+<div class="row"><span>Vacation pay</span><strong id="vacPay">0.00 ₾</strong></div>
+</div>
+</div>
+<div class="panel">
+<h2>Bonuses</h2>
+<div class="grid">
+<div class="field"><label>Airtime bonus per hour (₾)</label><input id="air" type="number" min="0" step="0.01" value="2"></div>
+<div class="field"><label>Monthly bonus (₾)</label><input id="monthlyBonus" type="number" min="0" step="0.01" value="0"></div>
+</div>
+<div class="row"><span class="muted">Airtime increase</span><strong id="tier">+60%</strong></div>
+<div class="row"><span class="muted">Adjusted bonus per hour</span><strong id="adjustedAir">3.20 ₾</strong></div>
+<div class="row"><span>Total airtime bonus</span><strong id="airPay">512.00 ₾</strong></div>
+<p class="small">Below 120h: 0% · 120–139h: 20% · 140–159h: 40% · 160h+: 60%</p>
+</div>
+<div class="panel">
+<h2>Overtime</h2>
+<div class="row"><span class="muted">Hours above monthly limit</span><strong id="otHours">0 h</strong></div>
+<div class="row"><span>Overtime payment</span><strong id="otPay">0.00 ₾</strong></div>
+<p class="small">Worked hours plus vacation hours count toward the monthly limit.</p>
+</div>
+<div class="panel">
+<h2>Income tax</h2>
+<div class="field"><label>Tax rate (%)</label><input id="tax" type="number" min="0" max="100" step="0.1" value="22"></div>
+</div>
+<div class="panel">
+<h2>Salary breakdown</h2>
+<div class="row"><span class="muted">Day shift pay</span><strong id="dayPay">0.00 ₾</strong></div>
+<div class="row"><span class="muted">Night shift pay</span><strong id="nightPay">0.00 ₾</strong></div>
+<div class="row"><span class="muted">Airtime bonus</span><strong id="breakAir">0.00 ₾</strong></div>
+<div class="row"><span class="muted">Monthly bonus</span><strong id="breakMonthly">0.00 ₾</strong></div>
+<div class="row" id="vacRow" class="hidden"><span class="muted">Vacation pay</span><strong id="breakVac">0.00 ₾</strong></div>
+<div class="row"><span class="muted">Overtime</span><strong id="breakOt">0.00 ₾</strong></div>
+<hr style="border:0;border-top:1px solid #e9edf3;margin:14px 0">
+<div class="row"><strong>Gross salary</strong><strong id="gross">0.00 ₾</strong></div>
+<div class="row"><span class="muted">Income tax</span><strong id="taxAmount">0.00 ₾</strong></div>
+<div class="net"><div class="muted">Net salary</div><div class="big" id="net">0.00 ₾</div></div>
+<button class="primary" id="save" style="width:100%;margin-top:15px">Save this month</button>
+<div id="saveMessage" class="small" style="margin-top:8px"></div>
+</div>
+</section>
+<section id="historySection" class="panel hidden">
+<h2>Saved monthly salaries</h2>
+<div class="net"><div class="muted">Total saved net earnings</div><div class="big" id="historyTotal">0.00 ₾</div><div class="small" id="historyCount">0 saved months</div></div>
+<div id="historyList" style="margin-top:14px"></div>
+</section>
+<p class="small">History is stored locally on this computer. It remains available after closing and reopening the app.</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const num = id => Math.max(0, Number($(id).value) || 0);
+const money = n => `${n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ₾`;
+const fields = ['month','limit','total','day','night','vacation','m1','m2','m3','air','monthlyBonus','tax'];
+let current = {};
+function calculate(){
+ const total=num('total'), day=num('day'), night=num('night'), vacation=num('vacation');
+ const limit=num('limit'), vacationHours=vacation*8;
+ const tier=total>=160?60:total>=140?40:total>=120?20:0;
+ const dayPay=day*9, nightPay=night*13.5;
+ const adjustedAir=num('air')*(1+tier/100), airPay=adjustedAir*total;
+ const overtimeHours=Math.max(0,total+vacationHours-limit), overtimePay=overtimeHours*2.25;
+ const vacationPay=vacation>0&&limit>0?((num('m1')+num('m2')+num('m3'))/limit)*vacationHours:0;
+ const monthlyBonus=num('monthlyBonus');
+ const gross=dayPay+nightPay+airPay+overtimePay+vacationPay+monthlyBonus;
+ const taxRate=Math.min(100,num('tax')), taxAmount=gross*taxRate/100, net=gross-taxAmount;
+ const valid=Math.abs(day+night-total)<0.001;
+ $('hoursWarning').classList.toggle('hidden',valid);
+ $('save').disabled=!valid||!$('month').value||limit<=0;
+ $('save').style.opacity=$('save').disabled?'.5':'1';
+ $('vacationFields').classList.toggle('hidden',vacation<=0);
+ $('vacRow').style.display=vacation>0?'flex':'none';
+ $('vacHours').textContent=vacationHours+' h'; $('vacPay').textContent=money(vacationPay);
+ $('tier').textContent='+'+tier+'%'; $('adjustedAir').textContent=money(adjustedAir);
+ $('airPay').textContent=money(airPay); $('otHours').textContent=overtimeHours+' h'; $('otPay').textContent=money(overtimePay);
+ $('dayPay').textContent=money(dayPay); $('nightPay').textContent=money(nightPay);
+ $('breakAir').textContent=money(airPay); $('breakMonthly').textContent=money(monthlyBonus);
+ $('breakVac').textContent=money(vacationPay); $('breakOt').textContent=money(overtimePay);
+ $('gross').textContent=money(gross); $('taxAmount').textContent='−'+money(taxAmount); $('net').textContent=money(net);
+ current={month:$('month').value,gross,taxAmount,net,tier,overtimeHours};
+}
+fields.forEach(id=>$(id).addEventListener('input',calculate));
+$('save').addEventListener('click',()=>{
+ const records=JSON.parse(localStorage.getItem('salaryHistory')||'[]');
+ records.push({...current,id:Date.now()});
+ localStorage.setItem('salaryHistory',JSON.stringify(records));
+ $('saveMessage').textContent='Saved successfully.';
+ renderHistory();
+});
+function renderHistory(){
+ const records=JSON.parse(localStorage.getItem('salaryHistory')||'[]');
+ $('historyTotal').textContent=money(records.reduce((s,r)=>s+r.net,0));
+ $('historyCount').textContent=records.length+' saved month(s)';
+ $('historyList').innerHTML='';
+ if(!records.length){$('historyList').innerHTML='<p class="muted">No saved months yet. Save a calculation to see it here.</p>';return;}
+ [...records].reverse().forEach(r=>{
+  const item=document.createElement('div');item.className='history-item';
+  const title=document.createElement('div');title.className='row';
+  const name=document.createElement('strong');name.textContent=r.month;
+  const del=document.createElement('button');del.className='danger';del.textContent='Delete';
+  del.addEventListener('click',()=>{localStorage.setItem('salaryHistory',JSON.stringify(records.filter(x=>x.id!==r.id)));renderHistory();});
+  title.append(name,del);item.append(title);
+  [['Gross',r.gross],['Tax',r.taxAmount],['Net',r.net]].forEach(([label,value])=>{
+   const row=document.createElement('div');row.className='row';
+   const a=document.createElement('span');a.className='muted';a.textContent=label;
+   const b=document.createElement('strong');b.textContent=money(value);row.append(a,b);item.append(row);
+  });
+  const meta=document.createElement('div');meta.className='small';meta.textContent=`Airtime increase: +${r.tier}% · Overtime: ${r.overtimeHours}h`;item.append(meta);
+  $('historyList').append(item);
+ });
+}
+$('calcTab').addEventListener('click',()=>showTab('calculator'));
+$('historyTab').addEventListener('click',()=>showTab('history'));
+function showTab(tab){
+ $('calculator').classList.toggle('hidden',tab!=='calculator');
+ $('historySection').classList.toggle('hidden',tab!=='history');
+ $('calcTab').classList.toggle('active',tab==='calculator');
+ $('historyTab').classList.toggle('active',tab==='history');
+ if(tab==='history')renderHistory();
+}
+const now=new Date();$('month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+calculate();renderHistory();
+</script>
+</body>
+</html>
